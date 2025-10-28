@@ -5,9 +5,11 @@ import ClineLogoWhite from "@/assets/ClineLogoWhite"
 import { Button } from "@/components/ui/button"
 import { Item, ItemContent, ItemDescription, ItemHeader, ItemMedia, ItemTitle } from "@/components/ui/item"
 import { handleSignIn } from "@/context/ClineAuthContext"
+import { useExtensionState } from "@/context/ExtensionStateContext"
 import { cn } from "@/lib/utils"
 import { StateServiceClient } from "@/services/grpc-client"
 import ApiConfigurationSection from "../settings/sections/ApiConfigurationSection"
+import { useApiConfigurationHandlers } from "../settings/utils/useApiConfigurationHandlers"
 import { ONBOARDING_MODEL_SELECTIONS } from "./models"
 import { NEW_USER_TYPE, STEP_CONFIG, USER_TYPE_SELECTIONS } from "./steps"
 
@@ -20,16 +22,6 @@ type ModelSelectionProps = {
 const ModelSelection = ({ userType, selectedModelId, onSelectModel }: ModelSelectionProps) => {
 	const modelGroups = ONBOARDING_MODEL_SELECTIONS[userType === NEW_USER_TYPE.FREE ? "free" : "power"]
 
-	const selectedModel = useMemo(() => {
-		for (const group of modelGroups) {
-			const model = group.models.find((m) => `${group.group}-${m.title}` === selectedModelId)
-			if (model) {
-				return model
-			}
-		}
-		return modelGroups[0].models[0]
-	}, [modelGroups, selectedModelId])
-
 	return (
 		<div className="flex flex-col w-full items-center">
 			<div className="flex w-full max-w-lg flex-col gap-6 my-4">
@@ -37,16 +29,15 @@ const ModelSelection = ({ userType, selectedModelId, onSelectModel }: ModelSelec
 					<div className="flex flex-col gap-3" key={group.group}>
 						<h4 className="text-sm font-semibold text-foreground/70 uppercase mb-2">{group.group}</h4>
 						{group.models.map((model) => {
-							const modelId = `${group.group}-${model.title}`
-							const isSelected = selectedModelId === modelId
+							const isSelected = selectedModelId === model.id
 
 							return (
 								<Item
 									className={cn("cursor-pointer hover:cursor-pointer", {
 										"bg-input-background/30 border border-button-background": isSelected,
 									})}
-									key={modelId}
-									onClick={() => onSelectModel(modelId)}
+									key={model.id}
+									onClick={() => onSelectModel(model.id)}
 									variant="outline">
 									<ItemHeader className="flex flex-col w-full align-baseline">
 										<ItemTitle className="flex w-full justify-between">
@@ -155,6 +146,9 @@ type OnboardingViewProps = {
 }
 
 const OnboardingView = ({ showOnboarding, onDone }: OnboardingViewProps) => {
+	const { handleFieldsChange } = useApiConfigurationHandlers()
+	const { openRouterModels } = useExtensionState()
+
 	const [stepNumber, setStepNumber] = useState(0)
 	const [userType, setUserType] = useState<NEW_USER_TYPE>(NEW_USER_TYPE.FREE)
 	const [selectedModelId, setSelectedModelId] = useState("")
@@ -167,12 +161,20 @@ const OnboardingView = ({ showOnboarding, onDone }: OnboardingViewProps) => {
 	}, [userType])
 
 	const finishOnboarding = useCallback(async () => {
+		handleFieldsChange({
+			planModeOpenRouterModelId: selectedModelId,
+			actModeOpenRouterModelId: selectedModelId,
+			planModeOpenRouterModelInfo: openRouterModels[selectedModelId],
+			actModeOpenRouterModelInfo: openRouterModels[selectedModelId],
+			planModeApiProvider: "cline",
+			actModeApiProvider: "cline",
+		})
 		showOnboarding(false)
 		onDone()
 		await StateServiceClient.setWelcomeViewCompleted(BooleanRequest.create({ value: true })).catch((err) =>
 			console.error("Failed to set welcome view completed:", err),
 		)
-	}, [])
+	}, [handleFieldsChange, selectedModelId, openRouterModels])
 
 	const handleFooterAction = useCallback(
 		(action: "auth" | "next" | "back" | "done") => {
@@ -192,7 +194,7 @@ const OnboardingView = ({ showOnboarding, onDone }: OnboardingViewProps) => {
 					break
 			}
 		},
-		[handleSignIn, stepNumber],
+		[handleSignIn, stepNumber, finishOnboarding],
 	)
 
 	const stepDisplayInfo = useMemo(() => {
