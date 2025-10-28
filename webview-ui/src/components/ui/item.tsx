@@ -83,7 +83,7 @@ function ItemMedia({
 function ItemContent({ className, ...props }: React.ComponentProps<"div">) {
 	return (
 		<div
-			className={cn("flex flex-1 flex-col gap-1 [&+[data-slot=item-content]]:flex-none", className)}
+			className={cn("w-full flex flex-1 flex-col gap-1 [&+[data-slot=item-content]]:flex-none", className)}
 			data-slot="item-content"
 			{...props}
 		/>
@@ -93,7 +93,7 @@ function ItemContent({ className, ...props }: React.ComponentProps<"div">) {
 function ItemTitle({ className, ...props }: React.ComponentProps<"div">) {
 	return (
 		<div
-			className={cn("flex w-fit items-center gap-2 text-sm font-medium leading-snug", className)}
+			className={cn("w-full flex items-center gap-2 text-sm font-medium leading-snug", className)}
 			data-slot="item-title"
 			{...props}
 		/>
@@ -104,8 +104,8 @@ function ItemDescription({ className, ...props }: React.ComponentProps<"p">) {
 	return (
 		<p
 			className={cn(
-				"text-muted-foreground line-clamp-2 text-balance text-sm font-normal leading-normal p-0 m-0",
-				"[&>a:hover]:text-primary [&>a]:underline [&>a]:underline-offset-4",
+				"w-full text-muted-foreground line-clamp-2 text-pretty text-sm font-normal leading-normal p-0 m-0",
+				"[&>a:hover]:text-foreground [&>a]:underline [&>a]:underline-offset-4",
 				className,
 			)}
 			data-slot="item-description"
@@ -120,7 +120,11 @@ function ItemActions({ className, ...props }: React.ComponentProps<"div">) {
 
 function ItemHeader({ className, ...props }: React.ComponentProps<"div">) {
 	return (
-		<div className={cn("flex basis-full items-center justify-between gap-2", className)} data-slot="item-header" {...props} />
+		<div
+			className={cn("w-full flex basis-full items-center justify-between gap-2", className)}
+			data-slot="item-header"
+			{...props}
+		/>
 	)
 }
 

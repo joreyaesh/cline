@@ -1,9 +1,9 @@
 import { BooleanRequest } from "@shared/proto/index.cline"
-import { AlertCircleIcon, CheckIcon, CircleCheckIcon, CircleIcon } from "lucide-react"
+import { AlertCircleIcon, CircleCheckIcon, CircleIcon, ListIcon, StarIcon, ZapIcon } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import ClineLogoWhite from "@/assets/ClineLogoWhite"
 import { Button } from "@/components/ui/button"
-import { Item, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "@/components/ui/item"
+import { Item, ItemContent, ItemDescription, ItemHeader, ItemMedia, ItemTitle } from "@/components/ui/item"
 import { handleSignIn } from "@/context/ClineAuthContext"
 import { cn } from "@/lib/utils"
 import { StateServiceClient } from "@/services/grpc-client"
@@ -48,32 +48,39 @@ const ModelSelection = ({ userType, selectedModelId, onSelectModel }: ModelSelec
 									key={modelId}
 									onClick={() => onSelectModel(modelId)}
 									variant="outline">
-									<ItemContent>
+									<ItemHeader className="flex flex-col w-full align-baseline">
 										<ItemTitle className="flex w-full justify-between">
 											{model.title}
 											<span className="text-button-background uppercase text-xs">{model.badge}</span>
 										</ItemTitle>
-										<ItemDescription>{model.description}</ItemDescription>
+										<ItemDescription>
+											<span className="text-foreground/70">Support: </span>{" "}
+											<span className="text-foreground">{model.capabilities.join(", ")}</span>
+										</ItemDescription>
+									</ItemHeader>
+									<ItemContent className="border-t border-muted-foreground pt-5">
+										<div className="flex flex-col gap-3">
+											<div className="inline-flex gap-1 [&_svg]:stroke-warning [&_svg]:size-3 items-center">
+												<StarIcon />
+												<span>Model Overview:</span>{" "}
+												<span className="text-foreground/70">{model.overview}</span>
+											</div>
+											<div className="inline-flex gap-1 [&_svg]:stroke-success [&_svg]:size-3 items-center">
+												<ZapIcon />
+												<span>Speed:</span> <span className="text-foreground/70">{model.speed}</span>
+											</div>
+											<div className="inline-flex gap-1 [&_svg]:stroke-foreground [&_svg]:size-3 items-center">
+												<ListIcon />
+												<span>Context:</span>{" "}
+												<span className="text-foreground/70">{model.context / 1000}k</span>
+											</div>
+										</div>
 									</ItemContent>
 								</Item>
 							)
 						})}
 					</div>
 				))}
-
-				<div className="text-sm text-foreground mt-2">
-					<div className="uppercase font-semibold">SUPPORTS</div>
-					<div className="flex flex-col gap-1 mt-2">
-						{selectedModel.capabilities.map((capability) => (
-							<div
-								className="text-success inline-flex gap-1 [&_svg]:stroke-success [&_svg]:size-3 items-center"
-								key={capability}>
-								<CheckIcon />
-								{capability}
-							</div>
-						))}
-					</div>
-				</div>
 			</div>
 		</div>
 	)

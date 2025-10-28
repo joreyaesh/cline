@@ -3,6 +3,9 @@ type ModelOption = {
 	description: string
 	badge: string
 	capabilities: string[]
+	overview: string
+	speed: string
+	context: number
 }
 
 type ModelGroup = {
@@ -19,13 +22,19 @@ export const ONBOARDING_MODEL_SELECTIONS: Record<"free" | "power", ModelGroup[]>
 					title: "xAI: Grok Code Fast 1",
 					description: "Leading model for agentic code",
 					badge: "Best",
-					capabilities: ["Images", "Tool Calling", "Prompt Caching"],
+					capabilities: ["Images", "Browser", "Prompt Caching"],
+					overview: "97% (Top Performer)",
+					speed: "Ultra Fast",
+					context: 256000,
 				},
 				{
 					title: "Code Supernova 1 million",
 					description: "Large 1M context window, great value",
 					badge: "Trending",
 					capabilities: ["Tool Calling", "Prompt Caching"],
+					overview: "97% (Top Performer)",
+					speed: "Fast",
+					context: 1000000,
 				},
 			],
 		},
@@ -39,6 +48,9 @@ export const ONBOARDING_MODEL_SELECTIONS: Record<"free" | "power", ModelGroup[]>
 					description: "Leading model for agentic coding",
 					badge: "Best",
 					capabilities: ["Images", "Tool Calling", "Prompt Caching"],
+					overview: "90%",
+					speed: "Fast",
+					context: 256000,
 				},
 			],
 		},
@@ -50,12 +62,18 @@ export const ONBOARDING_MODEL_SELECTIONS: Record<"free" | "power", ModelGroup[]>
 					description: "Leading model for agentic code",
 					badge: "Trending",
 					capabilities: ["Images", "Tool Calling", "Prompt Caching"],
+					overview: "90%",
+					speed: "Average",
+					context: 256000,
 				},
 				{
 					title: "Moonshot AI: Kimi Dev 72B",
 					description: "Leading model for agentic coding",
 					badge: "Value",
 					capabilities: ["Tool Calling", "Prompt Caching"],
+					overview: "70%",
+					speed: "Fast",
+					context: 256000,
 				},
 			],
 		},
