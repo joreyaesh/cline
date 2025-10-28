@@ -2,6 +2,10 @@
 
 This document explains how Cline loads MCP server configurations from multiple sources.
 
+## Quick Start
+
+See [examples/mcp.json.example](../examples/mcp.json.example) for a sample configuration file.
+
 ## Configuration Files
 
 Cline now supports loading MCP server configurations from three different locations:
