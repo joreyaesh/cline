@@ -253,7 +253,7 @@ const HookMessage = memo(({ message, CommandOutput }: HookMessageProps) => {
 								cursor: "pointer",
 								fontFamily: "inherit",
 							}}>
-							cancel
+							Abort
 						</button>
 					)}
 				</div>
