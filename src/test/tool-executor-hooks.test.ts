@@ -1,6 +1,8 @@
-import { describe, it } from "mocha"
+import { afterEach, beforeEach, describe, it } from "mocha"
 import "should"
+import * as sinon from "sinon"
 import { executeHook } from "../core/hooks/hook-executor"
+import { StateManager } from "../core/storage/StateManager"
 import { MessageStateHandler } from "../core/task/message-state"
 import { TaskState } from "../core/task/TaskState"
 
@@ -9,6 +11,25 @@ import { TaskState } from "../core/task/TaskState"
  * These tests verify the consolidated hook execution logic for tool-specific hooks
  */
 describe("Tool Executor Hooks", () => {
+	let stateManagerStub: sinon.SinonStub
+
+	beforeEach(() => {
+		// Mock StateManager to return empty workspace roots
+		stateManagerStub = sinon.stub(StateManager, "get").returns({
+			getGlobalStateKey: (key: string) => {
+				if (key === "workspaceRoots") {
+					return []
+				}
+				return undefined
+			},
+		} as any)
+	})
+
+	afterEach(() => {
+		// Restore StateManager stub
+		stateManagerStub.restore()
+	})
+
 	/**
 	 * Helper to create a minimal MessageStateHandler for testing
 	 */

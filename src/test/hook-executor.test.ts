@@ -3,7 +3,9 @@ import "should"
 import * as fs from "fs/promises"
 import * as os from "os"
 import * as path from "path"
+import * as sinon from "sinon"
 import { executeHook } from "../core/hooks/hook-executor"
+import { StateManager } from "../core/storage/StateManager"
 import { MessageStateHandler } from "../core/task/message-state"
 import { TaskState } from "../core/task/TaskState"
 import { ClineMessage } from "../shared/ExtensionMessage"
@@ -17,6 +19,7 @@ describe("Hook Executor", () => {
 	let tempDir: string
 	let testHandler: MessageStateHandler
 	let mockMessages: ClineMessage[]
+	let stateManagerStub: sinon.SinonStub
 
 	/**
 	 * Helper to create a minimal MessageStateHandler for testing
@@ -57,6 +60,16 @@ setTimeout(() => {
 		tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "hook-test-"))
 		testHandler = createTestHandler()
 		mockMessages = []
+
+		// Mock StateManager to return empty workspace roots
+		stateManagerStub = sinon.stub(StateManager, "get").returns({
+			getGlobalStateKey: (key: string) => {
+				if (key === "workspaceRoots") {
+					return []
+				}
+				return undefined
+			},
+		} as any)
 	})
 
 	afterEach(async () => {
@@ -66,6 +79,9 @@ setTimeout(() => {
 		} catch (error) {
 			// Ignore cleanup errors
 		}
+
+		// Restore StateManager stub
+		stateManagerStub.restore()
 	})
 
 	describe("Basic Hook Execution", () => {
