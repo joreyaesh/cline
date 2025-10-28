@@ -14,19 +14,16 @@ const MAX_HOOK_OUTPUT_SIZE = 1024 * 1024 // 1MB
  * - Separate handling of visual output vs. JSON response
  * - 30-second execution timeout
  * - 1MB output size limit (prevents memory issues)
- * - Hot state tracking (actively outputting)
- * - Process lifecycle management
+ * - Process lifecycle management with abort support
  */
 export class HookProcess extends EventEmitter {
 	private childProcess: ChildProcess | null = null
 	private buffer = ""
 	private fullOutput = ""
 	private lastRetrievedIndex = 0
-	private isHot = false
-	private hotTimer: NodeJS.Timeout | null = null
 	private exitCode: number | null = null
 	private isCompleted = false
-	private timeoutHandle: NodeJS.Timeout | null = null
+	private timeoutHandle: NodeJS.Timeout | null = null // 30-second execution timeout
 
 	// Separate buffers for stdout and stderr
 	private stdoutBuffer = ""
@@ -77,11 +74,7 @@ export class HookProcess extends EventEmitter {
 							this.abortSignal.removeEventListener("abort", abortHandler)
 						}
 
-						// Clean up timers
-						if (this.hotTimer) {
-							clearTimeout(this.hotTimer)
-							this.isHot = false
-						}
+						// Clean up execution timeout timer
 						if (this.timeoutHandle) {
 							clearTimeout(this.timeoutHandle)
 							this.timeoutHandle = null
@@ -158,11 +151,7 @@ export class HookProcess extends EventEmitter {
 					// Unregister from active processes
 					this.safeUnregister()
 
-					// Clear timers
-					if (this.hotTimer) {
-						clearTimeout(this.hotTimer)
-						this.isHot = false
-					}
+					// Clear execution timeout timer
 					if (this.timeoutHandle) {
 						clearTimeout(this.timeoutHandle)
 						this.timeoutHandle = null
@@ -250,18 +239,6 @@ export class HookProcess extends EventEmitter {
 			this.stderrSize += dataSize
 		}
 
-		// Set process as hot (actively outputting)
-		this.isHot = true
-		if (this.hotTimer) {
-			clearTimeout(this.hotTimer)
-		}
-
-		// Use a shorter hot timeout for hooks since they typically complete quickly
-		const hotTimeout = 1000 // 1 second
-		this.hotTimer = setTimeout(() => {
-			this.isHot = false
-		}, hotTimeout)
-
 		// Store full output
 		this.fullOutput += data
 
@@ -306,13 +283,6 @@ export class HookProcess extends EventEmitter {
 		const unretrieved = this.fullOutput.slice(this.lastRetrievedIndex)
 		this.lastRetrievedIndex = this.fullOutput.length
 		return unretrieved.trimEnd()
-	}
-
-	/**
-	 * Check if process is actively outputting
-	 */
-	isProcessHot(): boolean {
-		return this.isHot
 	}
 
 	/**
