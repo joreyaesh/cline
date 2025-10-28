@@ -8,7 +8,7 @@ import { HOOK_OUTPUT_STRING } from "./constants"
 const normalColor = "var(--vscode-foreground)"
 const errorColor = "var(--vscode-errorForeground)"
 const successColor = "var(--vscode-charts-green)"
-const runningColor = "var(--vscode-charts-orange)"
+const completedColor = "var(--vscode-descriptionForeground)"
 const _cancelledColor = "var(--vscode-descriptionForeground)"
 
 /**
@@ -193,14 +193,14 @@ const HookMessage = memo(({ message, CommandOutput }: HookMessageProps) => {
 								width: "8px",
 								height: "8px",
 								borderRadius: "50%",
-								backgroundColor: isRunning ? runningColor : isFailed || isCancelled ? errorColor : successColor,
+								backgroundColor: isRunning ? successColor : isFailed || isCancelled ? errorColor : completedColor,
 								animation: isRunning ? "pulse 2s ease-in-out infinite" : "none",
 								flexShrink: 0,
 							}}
 						/>
 						<span
 							style={{
-								color: isRunning ? runningColor : isFailed || isCancelled ? errorColor : successColor,
+								color: isRunning ? successColor : isFailed || isCancelled ? errorColor : completedColor,
 								fontWeight: 500,
 								fontSize: "13px",
 								flexShrink: 0,
