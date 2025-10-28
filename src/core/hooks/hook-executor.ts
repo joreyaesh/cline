@@ -18,6 +18,8 @@ export interface HookExecutionOptions<Name extends keyof Hooks = any> {
 	messageStateHandler: MessageStateHandler
 	taskId: string
 	hooksEnabled: boolean
+	toolName?: string // Optional tool name for PreToolUse/PostToolUse hooks
+	pendingToolInfo?: any // Optional metadata about pending tool execution for PreToolUse
 }
 
 // Import Hooks type from HookFactory
@@ -67,7 +69,9 @@ export async function executeHook<Name extends keyof Hooks>(options: HookExecuti
 		// Show hook execution indicator and capture timestamp
 		const hookMetadata = {
 			hookName,
+			...(options.toolName && { toolName: options.toolName }),
 			status: "running",
+			...(options.pendingToolInfo && { pendingToolInfo: options.pendingToolInfo }),
 		}
 		hookMessageTs = await say("hook", JSON.stringify(hookMetadata))
 
@@ -75,7 +79,7 @@ export async function executeHook<Name extends keyof Hooks>(options: HookExecuti
 		if (isCancellable && hookMessageTs !== undefined && setActiveHookExecution) {
 			await setActiveHookExecution({
 				hookName,
-				toolName: undefined,
+				toolName: options.toolName,
 				messageTs: hookMessageTs,
 				abortController,
 			})
@@ -106,6 +110,7 @@ export async function executeHook<Name extends keyof Hooks>(options: HookExecuti
 			if (hookMessageTs !== undefined) {
 				await updateHookMessage(messageStateHandler, hookMessageTs, {
 					hookName,
+					...(options.toolName && { toolName: options.toolName }),
 					status: "cancelled",
 					exitCode: 130,
 					hasJsonResponse: true,
@@ -129,6 +134,7 @@ export async function executeHook<Name extends keyof Hooks>(options: HookExecuti
 		if (hookMessageTs !== undefined) {
 			await updateHookMessage(messageStateHandler, hookMessageTs, {
 				hookName,
+				...(options.toolName && { toolName: options.toolName }),
 				status: "completed",
 				exitCode: 0,
 				hasJsonResponse: true,
