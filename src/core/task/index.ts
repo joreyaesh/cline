@@ -1622,11 +1622,6 @@ export class Task {
 	 * @returns true if the hook should run, false otherwise
 	 */
 	private async shouldRunTaskCancelHook(): Promise<boolean> {
-		// Don't run if already aborted
-		if (this.taskState.abort) {
-			return false
-		}
-
 		// Atomically check for active hook execution (work happening now)
 		const activeHook = await this.getActiveHookExecution()
 		if (activeHook) {
@@ -1670,7 +1665,17 @@ export class Task {
 
 	async abortTask() {
 		try {
-			// PHASE 1: Cancel any running hook execution
+			// PHASE 1: Check if TaskCancel should run BEFORE any cleanup
+			// We must capture this state now because subsequent cleanup will
+			// clear the active work indicators that shouldRunTaskCancelHook checks
+			const shouldRunTaskCancelHook = await this.shouldRunTaskCancelHook()
+
+			// PHASE 2: Set abort flag to prevent race conditions
+			// This must happen before canceling hooks so that hook catch blocks
+			// can properly detect the abort state
+			this.taskState.abort = true
+
+			// PHASE 3: Cancel any running hook execution
 			const activeHook = await this.getActiveHookExecution()
 			if (activeHook) {
 				try {
@@ -1684,10 +1689,9 @@ export class Task {
 				}
 			}
 
-			// PHASE 2: Run TaskCancel hook BEFORE setting abort flag
+			// PHASE 4: Run TaskCancel hook
 			// This allows the hook UI to appear in the webview
-			// Only run if there's actually work to cancel (not already aborted, has done work)
-			const shouldRunTaskCancelHook = await this.shouldRunTaskCancelHook()
+			// Use the shouldRunTaskCancelHook value we captured in Phase 1
 			const hooksEnabled = featureFlagsService.getHooksEnabled() && this.stateManager.getGlobalSettingsKey("hooksEnabled")
 			if (hooksEnabled && shouldRunTaskCancelHook) {
 				try {
@@ -1804,11 +1808,7 @@ export class Task {
 				}
 			}
 
-			// PHASE 3: Set abort flag AFTER running TaskCancel
-			// This allows the hook to complete and its UI to appear
-			this.taskState.abort = true
-
-			// Immediately update UI to reflect abort state
+			// PHASE 5: Immediately update UI to reflect abort state
 			try {
 				await this.messageStateHandler.saveClineMessagesAndUpdateHistory()
 				await this.postStateToWebview()
@@ -1816,12 +1816,12 @@ export class Task {
 				Logger.error("Failed to post state after setting abort flag", error)
 			}
 
-			// PHASE 4: Check for incomplete progress
+			// PHASE 6: Check for incomplete progress
 			if (this.FocusChainManager) {
 				this.FocusChainManager.checkIncompleteProgressOnCompletion()
 			}
 
-			// PHASE 5: Clean up resources
+			// PHASE 7: Clean up resources
 			this.terminalManager.disposeAll()
 			this.urlContentFetcher.closeBrowser()
 			await this.browserSession.dispose()
@@ -2325,12 +2325,7 @@ export class Task {
 		const { hookName, toolName, messageTs, abortController } = activeHook
 
 		try {
-			// SET ABORT FLAG FIRST - before signaling hook
-			// This ensures the subsequent abort check in ToolExecutor will catch it
-			// and prevent tool execution after hook cancellation
-			this.taskState.abort = true
-
-			// Signal cancellation to abort the hook process
+			// Abort the hook process
 			abortController.abort()
 
 			// Update hook message status to "cancelled"
