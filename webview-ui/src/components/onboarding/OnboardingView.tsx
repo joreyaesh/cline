@@ -161,14 +161,16 @@ const OnboardingView = ({ showOnboarding, onDone }: OnboardingViewProps) => {
 	}, [userType])
 
 	const finishOnboarding = useCallback(async () => {
-		handleFieldsChange({
-			planModeOpenRouterModelId: selectedModelId,
-			actModeOpenRouterModelId: selectedModelId,
-			planModeOpenRouterModelInfo: openRouterModels[selectedModelId],
-			actModeOpenRouterModelInfo: openRouterModels[selectedModelId],
-			planModeApiProvider: "cline",
-			actModeApiProvider: "cline",
-		})
+		if (selectedModelId) {
+			handleFieldsChange({
+				planModeOpenRouterModelId: selectedModelId,
+				actModeOpenRouterModelId: selectedModelId,
+				planModeOpenRouterModelInfo: openRouterModels[selectedModelId],
+				actModeOpenRouterModelInfo: openRouterModels[selectedModelId],
+				planModeApiProvider: "cline",
+				actModeApiProvider: "cline",
+			})
+		}
 		showOnboarding(false)
 		onDone()
 		await StateServiceClient.setWelcomeViewCompleted(BooleanRequest.create({ value: true })).catch((err) =>

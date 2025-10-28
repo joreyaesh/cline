@@ -17,7 +17,7 @@ export const STEP_CONFIG = {
 			"Cline is free for individual developers. Pay only for AI inference on a usage basis - no subscriptions, no vendor lock-in. You can change this later!",
 		buttons: [
 			{ text: "Continue", action: "next", variant: "default" },
-			{ text: "Login", action: "auth", variant: "secondary" },
+			{ text: "Login to Cline", action: "auth", variant: "secondary" },
 		],
 	},
 	[NEW_USER_TYPE.FREE]: {

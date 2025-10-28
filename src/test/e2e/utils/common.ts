@@ -34,17 +34,8 @@ export const toggleNotifications = async (_page: Page) => {
 	await _page.keyboard.press("Enter")
 	return _page
 }
-
-export const closeBanners = async (sidebar: Page) => {
-	const banners = ["Get Started for Free", "Close banner and enable"]
-
-	for (const banner of banners) {
-		await sidebar.getByRole("button", { name: banner }).click({ delay: 100 })
-	}
-}
-
 export async function cleanChatView(sidebar: Page): Promise<Page> {
-	const signUpBtn = sidebar.getByRole("button", { name: "Get Started for Free" })
+	const signUpBtn = sidebar.getByRole("button", { name: "Login to Cline" })
 	if (await signUpBtn.isVisible()) {
 		await signUpBtn.click({ delay: 50 })
 	}
