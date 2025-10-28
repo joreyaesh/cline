@@ -77,7 +77,7 @@ interface HookMetadata {
  *
  * Smart expansion defaults:
  * - Failed hooks: Expanded by default (show error details)
- * - Cancelled hooks: Expanded by default (show what happened)
+ * - Aborted hooks: Expanded by default (show what happened)
  * - Successful hooks: Collapsed by default (minimize clutter)
  * - Running hooks: Always shows pending tool info
  */
@@ -210,7 +210,7 @@ const HookMessage = memo(({ message, CommandOutput }: HookMessageProps) => {
 								: isFailed
 									? "Failed"
 									: isCancelled
-										? "Cancelled"
+										? "Aborted"
 										: isCompleted
 											? "Completed"
 											: "Unknown"}
