@@ -106,52 +106,31 @@ export async function loadMultiSourceMcpSettings(
 ): Promise<MultiSourceMcpSettings> {
 	const locations = getMcpConfigLocations(globalSettingsPath, workspaceRoots)
 
-	// Sort by priority (higher priority first, so we can override)
-	// We'll actually process lowest priority first and let higher priority override
+	// Sort by priority - process from lowest priority (highest number) to highest priority (lowest number)
+	// so that higher priority files override lower priority ones
 	const sortedLocations = [...locations].sort((a, b) => b.priority - a.priority)
 
 	const mergedServers: Record<string, McpServerConfig> = {}
 	const sources = new Map<string, string>()
 
+	// Process from lowest priority to highest priority (3 → 2 → 1)
 	for (const location of sortedLocations) {
 		const config = await loadMcpConfigFile(location.path)
 		if (!config) {
 			continue
 		}
 
-		// Merge servers from this source
+		// Add or override servers from this source
+		// Since we process in order, later iterations (higher priority) will override earlier ones
 		for (const [serverName, serverConfig] of Object.entries(config.mcpServers)) {
-			// Higher priority files (processed later due to reverse sort) override earlier ones
-			if (!mergedServers[serverName]) {
-				mergedServers[serverName] = serverConfig
-				sources.set(serverName, location.path)
-			}
-		}
-	}
-
-	// Now reverse the process to let higher priority actually override
-	// (We need to re-process in correct order)
-	const finalServers: Record<string, McpServerConfig> = {}
-	const finalSources = new Map<string, string>()
-
-	// Process from lowest to highest priority
-	const correctOrderLocations = [...locations].sort((a, b) => a.priority - b.priority)
-
-	for (const location of correctOrderLocations) {
-		const config = await loadMcpConfigFile(location.path)
-		if (!config) {
-			continue
-		}
-
-		for (const [serverName, serverConfig] of Object.entries(config.mcpServers)) {
-			finalServers[serverName] = serverConfig
-			finalSources.set(serverName, location.path)
+			mergedServers[serverName] = serverConfig
+			sources.set(serverName, location.path)
 		}
 	}
 
 	return {
-		mcpServers: finalServers,
-		sources: finalSources,
+		mcpServers: mergedServers,
+		sources: sources,
 	}
 }
 
