@@ -2,8 +2,6 @@
 
 ## 3.34.2
 
-### Patch Changes
-
 - 545ac29: Created GPT5 family specific system prompt template
 
 ## [3.34.1]
