@@ -257,7 +257,7 @@ export function useMessageHandlers(messages: ClineMessage[], chatState: ChatStat
 					// Clear any pending state that might interfere with resume
 					setSendingDisabled(false)
 					setEnableButtons(true)
-					clearInputState()
+					//clearInputState()
 					break
 
 				case "utility":
