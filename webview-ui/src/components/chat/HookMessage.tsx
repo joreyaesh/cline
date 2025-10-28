@@ -9,7 +9,6 @@ const normalColor = "var(--vscode-foreground)"
 const errorColor = "var(--vscode-errorForeground)"
 const successColor = "var(--vscode-charts-green)"
 const completedColor = "var(--vscode-descriptionForeground)"
-const _cancelledColor = "var(--vscode-descriptionForeground)"
 
 /**
  * Determines if a hook message should be expanded by default.
