@@ -1275,6 +1275,7 @@ export class Task {
 		}
 
 		this.taskState.isInitialized = true
+		this.taskState.abort = false // Reset abort flag when resuming task
 
 		const { response, text, images, files } = await this.ask(askType) // calls poststatetowebview
 
@@ -1443,7 +1444,7 @@ export class Task {
 		let responseText: string | undefined
 		let responseImages: string[] | undefined
 		let responseFiles: string[] | undefined
-		if (response === "messageResponse") {
+		if (response === "messageResponse" || text || (images && images.length > 0) || (files && files.length > 0)) {
 			await this.say("user_feedback", text, images, files)
 			await this.checkpointManager?.saveCheckpoint()
 			responseText = text
