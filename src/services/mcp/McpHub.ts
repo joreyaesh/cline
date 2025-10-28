@@ -1,6 +1,7 @@
 import { setTimeout as setTimeoutPromise } from "node:timers/promises"
 import { sendMcpServersUpdate } from "@core/controller/mcp/subscribeToMcpServers"
 import { GlobalFileNames } from "@core/storage/disk"
+import { StateManager } from "@core/storage/StateManager"
 import { Client } from "@modelcontextprotocol/sdk/client/index.js"
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js"
 import { getDefaultEnvironment, StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
@@ -35,6 +36,7 @@ import { HostProvider } from "@/hosts/host-provider"
 import { ShowMessageType } from "@/shared/proto/host/window"
 import { TelemetryService } from "../telemetry/TelemetryService"
 import { DEFAULT_REQUEST_TIMEOUT_MS } from "./constants"
+import { getAllWatchPaths, loadMultiSourceMcpSettings } from "./multi-source-loader"
 import { BaseConfigSchema, McpSettingsSchema, ServerConfigSchema } from "./schemas"
 import { McpConnection, McpServerConfig, Transport } from "./types"
 export class McpHub {
@@ -95,45 +97,47 @@ export class McpHub {
 		return mcpSettingsFilePath
 	}
 
+	private async getWorkspaceRootPaths(): Promise<string[]> {
+		const workspaceRoots = StateManager.get().getGlobalStateKey("workspaceRoots") || []
+		return workspaceRoots.map((root) => root.path)
+	}
+
 	private async readAndValidateMcpSettingsFile(): Promise<z.infer<typeof McpSettingsSchema> | undefined> {
 		try {
-			const settingsPath = await this.getMcpSettingsFilePath()
-			const content = await fs.readFile(settingsPath, "utf-8")
+			const globalSettingsPath = await this.getMcpSettingsFilePath()
+			const workspaceRoots = await this.getWorkspaceRootPaths()
 
-			let config: any
+			// Load settings from all sources (global, .mcp.json, .vscode/mcp.json)
+			const multiSourceSettings = await loadMultiSourceMcpSettings(globalSettingsPath, workspaceRoots)
 
-			// Parse JSON file content
-			try {
-				config = JSON.parse(content)
-			} catch (_error) {
-				HostProvider.window.showMessage({
-					type: ShowMessageType.ERROR,
-					message: "Invalid MCP settings format. Please ensure your settings follow the correct JSON format.",
-				})
-				return undefined
+			console.log(
+				`[MCP Multi-Source] Loaded ${Object.keys(multiSourceSettings.mcpServers).length} servers from multiple sources`,
+			)
+
+			// Log which servers came from which sources for debugging
+			for (const [serverName, sourcePath] of multiSourceSettings.sources.entries()) {
+				console.log(`[MCP Multi-Source] Server "${serverName}" loaded from: ${sourcePath}`)
 			}
 
-			// Validate against schema
-			const result = McpSettingsSchema.safeParse(config)
-			if (!result.success) {
-				HostProvider.window.showMessage({
-					type: ShowMessageType.ERROR,
-					message: "Invalid MCP settings schema.",
-				})
-				return undefined
+			return {
+				mcpServers: multiSourceSettings.mcpServers,
 			}
-
-			return result.data
 		} catch (error) {
-			console.error("Failed to read MCP settings:", error)
+			console.error("[MCP Multi-Source] Failed to read MCP settings:", error)
 			return undefined
 		}
 	}
 
 	private async watchMcpSettingsFile(): Promise<void> {
-		const settingsPath = await this.getMcpSettingsFilePath()
+		const globalSettingsPath = await this.getMcpSettingsFilePath()
+		const workspaceRoots = await this.getWorkspaceRootPaths()
 
-		this.settingsWatcher = chokidar.watch(settingsPath, {
+		// Get all paths that should be watched (global + workspace .mcp.json + .vscode/mcp.json)
+		const watchPaths = getAllWatchPaths(globalSettingsPath, workspaceRoots)
+
+		console.log(`[MCP Multi-Source] Watching ${watchPaths.length} config paths:`, watchPaths)
+
+		this.settingsWatcher = chokidar.watch(watchPaths, {
 			persistent: true, // Keep the process running as long as files are being watched
 			ignoreInitial: true, // Don't fire 'add' events when discovering the file initially
 			awaitWriteFinish: {
@@ -144,13 +148,40 @@ export class McpHub {
 			atomic: true, // Handle atomic writes where editors write to a temp file then rename (prevents duplicate events)
 		})
 
-		this.settingsWatcher.on("change", async () => {
+		this.settingsWatcher.on("change", async (changedPath) => {
+			console.log(`[MCP Multi-Source] Config file changed: ${changedPath}`)
 			const settings = await this.readAndValidateMcpSettingsFile()
 			if (settings) {
 				try {
 					await this.updateServerConnections(settings.mcpServers)
 				} catch (error) {
 					console.error("Failed to process MCP settings change:", error)
+				}
+			}
+		})
+
+		// Also watch for file additions (for when .mcp.json or .vscode/mcp.json are created)
+		this.settingsWatcher.on("add", async (addedPath) => {
+			console.log(`[MCP Multi-Source] Config file added: ${addedPath}`)
+			const settings = await this.readAndValidateMcpSettingsFile()
+			if (settings) {
+				try {
+					await this.updateServerConnections(settings.mcpServers)
+				} catch (error) {
+					console.error("Failed to process MCP settings addition:", error)
+				}
+			}
+		})
+
+		// Watch for file deletions too
+		this.settingsWatcher.on("unlink", async (deletedPath) => {
+			console.log(`[MCP Multi-Source] Config file deleted: ${deletedPath}`)
+			const settings = await this.readAndValidateMcpSettingsFile()
+			if (settings) {
+				try {
+					await this.updateServerConnections(settings.mcpServers)
+				} catch (error) {
+					console.error("Failed to process MCP settings deletion:", error)
 				}
 			}
 		})
