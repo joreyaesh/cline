@@ -164,7 +164,7 @@ const HookMessage = memo(({ message, CommandOutput }: HookMessageProps) => {
 				style={{
 					borderRadius: 6,
 					border: "1px solid var(--vscode-editorGroup-border)",
-					overflow: "hidden",
+					overflow: "visible",
 					backgroundColor: CHAT_ROW_EXPANDED_BG_COLOR,
 					transition: "all 0.3s ease-in-out",
 				}}>
